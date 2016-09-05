@@ -3,6 +3,7 @@
 #include <visualization_msgs/Marker.h>
 
 FILE *file;
+FILE *out_file;
 char str[101];
 visualization_msgs::Marker marker;
 
@@ -51,6 +52,9 @@ int main(int argc, char **argv)
     for (int i=0;i<2;i++)
         fgets(str,100,file);
 
+    // ==== output to file ====
+    out_file = fopen("/home/timer/catkin_ws/ply_points.txt","w");
+
     // begin to read mesh -> marker
     marker.header.stamp = ros::Time::now();
     marker.header.frame_id = "world";
@@ -77,6 +81,7 @@ int main(int argc, char **argv)
             color.b = b/255.0;
             color.a = 1.0;
             marker.colors.push_back(color);
+            fprintf(out_file,"%lf %lf %lf %lf %lf %lf\n",pt.x,pt.y,pt.z,color.r,color.g,color.b);
         }
         else
         {
@@ -86,6 +91,7 @@ int main(int argc, char **argv)
     }
     // ignore indices info
     fclose(file);
+    fclose(out_file);
 
     ROS_INFO("marker.points.size() = %lu",marker.points.size());
     ROS_INFO("marker.colors.size() = %lu",marker.colors.size());
