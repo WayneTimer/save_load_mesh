@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  cv_bridge
   chisel_msgs
 )
 find_package(OpenGL REQUIRED)
@@ -47,5 +48,5 @@ add_executable(load src/load_mesh.cpp)
 target_link_libraries(load ${catkin_LIBRARIES})
 add_dependencies(load save_generate_messages_cpp)
 
-add_executable(gl_show src/gl_show.cpp)
-target_link_libraries(gl_show GL glut GLU X11)
+add_executable(gl_viewer src/gl_viewer.cpp src/utils.cpp)
+target_link_libraries(gl_viewer GL glut GLU X11 ${catkin_LIBRARIES})
