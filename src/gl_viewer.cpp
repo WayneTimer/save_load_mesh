@@ -8,6 +8,7 @@
 #include <iostream>
 #include <fstream>
 #include <eigen3/Eigen/Dense>
+#include <boost/thread.hpp>
 
 #include "utils.h"
 
@@ -325,8 +326,19 @@ void keyboard(unsigned char key, int x, int y)
     glutPostRedisplay();
 }
 
+void spin_thread()
+{
+    while (ros::ok())
+    {
+        puts("spin_thread alive");
+        sleep(3);  // do something every 3 seconds
+    }
+}
+
 int main(int argc, char **argv)
 {
+    ros::init(argc,argv,"gl_viewer");
+
     sprintf(file_path,"%s",argv[1]);
     if (file_init())
     {
@@ -341,6 +353,11 @@ int main(int argc, char **argv)
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboard);
     glutDisplayFunc(display);
+
+    boost::thread th1(spin_thread);
+
     glutMainLoop();
+
+    ros::shutdown();
     return 0;
 }
