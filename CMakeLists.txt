@@ -22,10 +22,22 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  image_transport
   cv_bridge
   chisel_msgs
+  message_generation
 )
 find_package(OpenGL REQUIRED)
+
+add_service_files(FILES
+  RendererService.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  geometry_msgs
+  sensor_msgs
+)
 
 catkin_package()
 
@@ -42,11 +54,15 @@ include_directories(
 
 add_executable(save src/save_mesh.cpp)
 target_link_libraries(save ${catkin_LIBRARIES})
-add_dependencies(save save_generate_messages_cpp)
+add_dependencies(save ${PROJECT_NAME}_generate_messages_cpp)
 
 add_executable(load src/load_mesh.cpp)
 target_link_libraries(load ${catkin_LIBRARIES})
-add_dependencies(load save_generate_messages_cpp)
+add_dependencies(load ${PROJECT_NAME}_generate_messages_cpp)
 
 add_executable(gl_viewer src/gl_viewer.cpp src/utils.cpp)
 target_link_libraries(gl_viewer GL glut GLU X11 ${catkin_LIBRARIES})
+add_dependencies(gl_viewer ${PROJECT_NAME}_generate_messages_cpp)
+
+add_executable(fps src/fps.cpp src/utils.cpp)
+target_link_libraries(fps GL glut GLU X11 ${catkin_LIBRARIES})

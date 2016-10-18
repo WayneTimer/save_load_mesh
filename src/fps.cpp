@@ -8,17 +8,15 @@
 #include <iostream>
 #include <fstream>
 #include <eigen3/Eigen/Dense>
-#include <boost/thread.hpp>
 
-#include "save_load_mesh/RendererService.h"
 #include "utils.h"
 
 using namespace std;
 
 #define OUTPUT_DIR "/home/timer/catkin_ws/gl_outputs"
 
-//const int calc_level = 0;
-const int calc_level = 2;
+const int calc_level = 0;
+//const int calc_level = 2;
 int WIDTH = 752;
 int HEIGHT = 480;
 double fy = 520.0; // visensor left cam1 (P[1][1])
@@ -33,10 +31,6 @@ int file_cnt = 0;
 double near = 1.0;
 double far = 50.0;
 double FOV;
-
-Eigen::Matrix3d begin_R;
-Eigen::Quaterniond begin_quat;
-Eigen::Vector3d begin_T;
 
 // skip useless things in input file
 int file_init()
@@ -130,7 +124,7 @@ void display()
     glFlush();
 }
 
-void reshape(int w, int h, double tx,double ty,double tz,double rd,double rx,double ry,double rz)
+void reshape(int w, int h)
 {
     glViewport(0, 0, (GLsizei) w, (GLsizei) h);
     printf("w=%d h=%d\n",w,h);
@@ -149,25 +143,6 @@ void reshape(int w, int h, double tx,double ty,double tz,double rd,double rx,dou
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);    //  last three (, shangxia, )
-
-/*
-double b_tx,b_ty,b_tz;
-double b_rd,b_rx,b_ry,b_rz;
-b_tx = begin_T[0];
-b_ty = begin_T[1];
-b_tz = begin_T[2];
-b_rx = begin_quat.x();
-b_ry = begin_quat.y();
-b_rz = begin_quat.z();
-b_rd = 2.0 * acos(begin_quat.w())*180.0/M_PI;
-glRotated(b_rd, b_rx, b_ry, b_rz);
-glTranslated(b_tx, b_ty, b_tz);
-*/
-
-    glRotated(rd, -rx, ry, rz);
-    glTranslated(-tx, ty, tz);
-
-    //gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);    //  last three (, shangxia, )
 }
 
 bool save_img(const char *file_name)
@@ -249,54 +224,121 @@ bool save_depth(const char *file_name)
     return true;    
 }
 
-bool mapper_renderer(
-                      save_load_mesh::RendererService::Request& request,
-                      save_load_mesh::RendererService::Response& response
-                    )
+/* Rotate about x-axis when "x" typed; rotate about y-axis
+   when "y" typed; "i" returns torus to original view */
+void keyboard(unsigned char key, int x, int y)
 {
-    ros::Time stamp = request.pose_stamped.header.stamp;
-    double tx,ty,tz,rd,rx,ry,rz;
-    tx = request.pose_stamped.pose.position.x;
-    ty = request.pose_stamped.pose.position.y;
-    tz = request.pose_stamped.pose.position.z;
-    rx = request.pose_stamped.pose.orientation.x;
-    ry = request.pose_stamped.pose.orientation.y;
-    rz = request.pose_stamped.pose.orientation.z;
-    rd = 2.0 * acos(request.pose_stamped.pose.orientation.w)*180.0/M_PI;
-
-    printf("(%.2lf,%.2lf,%.2lf), (%.2lf,%.2lf,%.2lf,%.2lf)\n",
-            tx,ty,tz,
-            rx,ry,rz,rd
-          );
-
-    reshape(WIDTH,HEIGHT,tx,ty,tz,rd,rx,ry,rz);
-    display();
-
-    char* pixels = new char[3*WIDTH*HEIGHT];  // left-corner start,   (HEIGHT,0) -> (HEIGHT,1) ...
-    glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-    glReadPixels(0,0,WIDTH,HEIGHT,GL_RGB,GL_UNSIGNED_BYTE,pixels);
-
-    cv::Mat img_mat = cv::Mat::zeros(HEIGHT,WIDTH,CV_8UC3);
-    int pixel_cnt = 0;
-    for (int v=HEIGHT-1;v>=0;v--)
-        for (int u=0;u<WIDTH;u++)
-        {
-            cv::Vec3b tmp(pixels[pixel_cnt+2],pixels[pixel_cnt+1],pixels[pixel_cnt]);
-            img_mat.at<cv::Vec3b>(v,u) = tmp;
-            pixel_cnt += 3;
-        }
-    response.image = img2msg(img_mat,stamp,sensor_msgs::image_encodings::TYPE_8UC3);
-
-    delete [] pixels;
-    return true;
-}
-
-void service_thread()
-{
-    ros::NodeHandle nh("~");
-    ros::ServiceServer service = nh.advertiseService("mapper_renderer",mapper_renderer);
-    ROS_INFO("Ready to render image.");
-    ros::spin();
+    switch (key)
+    {
+        case 'z':
+            glRotatef(0.3,1.0,0.0,0.0);
+            break;
+       case 'Z':
+            glRotatef(3.,1.0,0.0,0.0);
+            break;
+       case 'c':
+            glRotatef(0.3,-1.0,0.0,0.0);
+            break;
+       case 'C':
+            glRotatef(3.,-1.0,0.0,0.0);
+            break;
+       case 'q':
+            glRotatef(0.3,0.0,1.0,0.0);
+            break;
+       case 'Q':
+            glRotatef(3.,0.0,1.0,0.0);
+            break;
+       case 'e':
+            glRotatef(0.3,0.0,-1.0,0.0);
+            break;
+       case 'E':
+            glRotatef(3.,0.0,-1.0,0.0);
+            break;
+       case 'f':
+            glRotatef(0.3,0.0,0.0,-1.0);
+            break;
+       case 'F':
+            glRotatef(3.,0.0,0.0,-1.0);
+            break;
+       case 'g':
+            glRotatef(0.3,0.0,0.0,1.0);
+            break;
+       case 'G':
+            glRotatef(3.,0.0,0.0,1.0);
+            break;
+       case 'i':
+       case 'I':
+            glLoadIdentity();
+            gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);
+            break;
+       case 'y':
+            glTranslated(0, 0, -0.01);
+            break;
+       case 'Y':
+            glTranslated(0, 0, -0.1);
+            break;
+       case 'h':
+            glTranslated(0, 0, 0.01);
+            break;
+       case 'H':
+            glTranslated(0, 0, 0.1);
+            break;
+       case 'w':
+            glTranslated(0, 0.01, 0);
+            break;
+       case 'W':
+            glTranslated(0, 0.1, 0);
+            break;
+       case 's':
+            glTranslated(0, -0.01, 0);
+            break;
+       case 'S':
+            glTranslated(0, -0.1, 0);
+            break;
+       case 'a':
+            glTranslated(-0.01, 0, 0);
+            break;
+       case 'A':
+            glTranslated(-0.1, 0, 0);
+            break;
+       case 'd':
+            glTranslated(0.01, 0, 0);
+            break;
+       case 'D':
+            glTranslated(0.1, 0, 0);
+            break;
+       case 'p':
+            char file_name[100];
+            sprintf(file_name,"%s/key_frame_%02d_%.2lf.bmp",OUTPUT_DIR,file_cnt,FOV);
+            if (save_img(file_name))
+                ROS_INFO("save img: %s done",file_name);
+            else
+                ROS_ERROR("save img: %s fail",file_name);
+            sprintf(file_name,"%s/key_frame_depth_%02d_%.2lf.bmp",OUTPUT_DIR,file_cnt,FOV);
+            if (save_depth(file_name))
+                ROS_INFO("save depth: %s done",file_name);
+            else
+                ROS_ERROR("save depth: %s fail",file_name);
+            file_cnt++;
+            break;
+       case '`':
+            double modelview[16];
+            glGetDoublev(GL_MODELVIEW_MATRIX,modelview);
+            for (int i=0;i<4;i++)
+            {
+                for (int j=0;j<4;j++)
+                {
+                    printf("%lf ",modelview[i*4+j]);
+                }
+                puts("");
+                puts("-------------------------------");
+            }
+            break;
+       case 27:  // key: 'ESC'
+            exit(0);
+            break;
+    }
+    glutPostRedisplay();
 }
 
 int main(int argc, char **argv)
@@ -320,24 +362,10 @@ int main(int argc, char **argv)
     glutCreateWindow(argv[0]);
     init();
 
-    begin_R(0,0) = 0.999781;
-    begin_R(0,1) = -0.000137;
-    begin_R(0,2) = 0.020942;
-    begin_R(1,0) = -0.000904;
-    begin_R(1,1) = -0.999328;
-    begin_R(1,2) = 0.036635;
-    begin_R(2,0) = 0.020923;
-    begin_R(2,1) = -0.036645;
-    begin_R(2,2) = -0.999109;
-
-    begin_T[0] = 0.002042;
-    begin_T[1] = 0.008846;
-    begin_T[2] = -0.359814;
-
-    begin_quat = Eigen::Quaterniond(begin_R);
-    begin_quat.normalize();
-
-    service_thread();
+    glutReshapeFunc(reshape);
+    glutKeyboardFunc(keyboard);
+    glutDisplayFunc(display);
+    glutMainLoop();
 
     return 0;
 }
