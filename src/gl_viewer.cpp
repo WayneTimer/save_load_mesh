@@ -164,8 +164,11 @@ glRotated(b_rd, b_rx, b_ry, b_rz);
 glTranslated(b_tx, b_ty, b_tz);
 */
 
-    glRotated(rd, -rx, ry, rz);
-    glTranslated(-tx, ty, tz);
+    //glRotated(rd, -rx, ry, rz);
+    //glTranslated(-tx, ty, tz);
+
+    glRotated(rd, -rx, -ry, -rz);
+    glTranslated(-tx, -ty, -tz);
 
     //gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);    //  last three (, shangxia, )
 }
