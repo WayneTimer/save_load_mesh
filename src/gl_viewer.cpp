@@ -18,7 +18,7 @@ using namespace std;
 #define OUTPUT_DIR "/home/timer/catkin_ws/gl_outputs"
 
 //const int calc_level = 0;
-const int calc_level = 2;
+const int calc_level = 1;
 int WIDTH = 752;
 int HEIGHT = 480;
 double fy = 520.0; // visensor left cam1 (P[1][1])
@@ -103,7 +103,8 @@ static void triangles()
             r = g = b = 1.0;  // white
         }
         glColor3f(r,g,b);
-        glVertex3f(x,y,z);
+//        glVertex3f(x,y,z);
+        glVertex3f(x,-y,-z);
     }
     glEnd();
     fclose(file);
@@ -148,7 +149,7 @@ void reshape(int w, int h, double tx,double ty,double tz,double rd,double rx,dou
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);    //  last three (, shangxia, )
+    //gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);    //  last three (, shangxia, )
 
 /*
 double b_tx,b_ty,b_tz;
@@ -167,8 +168,8 @@ glTranslated(b_tx, b_ty, b_tz);
     //glRotated(rd, -rx, ry, rz);
     //glTranslated(-tx, ty, tz);
 
-    glRotated(rd, -rx, -ry, -rz);
-    glTranslated(-tx, -ty, -tz);
+    glRotated(rd, rx, ry, rz);
+    glTranslated(-tx, ty, tz);
 
     //gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);    //  last three (, shangxia, )
 }
@@ -269,12 +270,13 @@ bool mapper_renderer(
 
     printf("(%.2lf,%.2lf,%.2lf), (%.2lf,%.2lf,%.2lf,%.2lf)\n",
             tx,ty,tz,
-            rx,ry,rz,rd
+            rx,ry,rz,request.pose_stamped.pose.orientation.w
           );
 
     reshape(WIDTH,HEIGHT,tx,ty,tz,rd,rx,ry,rz);
     display();
 
+    // send image
     char* pixels = new char[3*WIDTH*HEIGHT];  // left-corner start,   (HEIGHT,0) -> (HEIGHT,1) ...
     glPixelStorei(GL_UNPACK_ALIGNMENT,1);
     glReadPixels(0,0,WIDTH,HEIGHT,GL_RGB,GL_UNSIGNED_BYTE,pixels);
@@ -291,6 +293,45 @@ bool mapper_renderer(
     response.image = img2msg(img_mat,stamp,sensor_msgs::image_encodings::TYPE_8UC3);
 
     delete [] pixels;
+
+    // send depth
+    float* depth_pixels = new float[WIDTH*HEIGHT];
+    glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+    glReadPixels(0,0,WIDTH,HEIGHT,GL_DEPTH_COMPONENT,GL_FLOAT,depth_pixels);
+
+    cv::Mat depth_img = cv::Mat::zeros(HEIGHT,WIDTH,CV_32FC1);
+    pixel_cnt = 0;
+
+    double z_c = (far-near)/256.0;
+
+    Eigen::MatrixXd depth_matrix = Eigen::MatrixXd::Zero(HEIGHT,WIDTH);
+    double d_max,d_min;
+    d_max = depth_pixels[0];
+    d_min = d_max;
+
+    for (int v=HEIGHT-1;v>=0;v--)
+        for (int u=0;u<WIDTH;u++)
+        {
+            double z_buffer = depth_pixels[pixel_cnt];
+
+            depth_matrix(v,u) = (2.0*far*near) / ( far + near - (far-near)*(2.0*z_buffer-1.0) );
+
+            if (double_equ_check(depth_matrix(v,u),far) == 0)
+                depth_matrix(v,u) = 0.0;
+
+            depth_img.at<float>(v,u) = depth_matrix(v,u);  // if no depth -> z_buffer = 1.0,  z_real = far
+
+            if (depth_img.at<float>(v,u) > d_max)
+                d_max = depth_img.at<float>(v,u);
+            if (depth_img.at<float>(v,u) < d_min)
+                d_min = depth_img.at<float>(v,u);
+            pixel_cnt++;
+        }
+    printf("d_max = %lf, d_min = %lf\n",d_max,d_min);
+    response.depth = img2msg(depth_img,stamp,sensor_msgs::image_encodings::TYPE_32FC1);
+
+    delete [] depth_pixels;
+
     return true;
 }
 
@@ -307,7 +348,7 @@ int main(int argc, char **argv)
     ros::init(argc,argv,"gl_viewer");
     fy = fy / (1<<calc_level);    // down sample to calc_level
     cy = cy / (1<<calc_level);
-    //cy = (cy+0.5) / (1<<calc_level) - 0.5;
+    //cy = (cy+0.5) / (1<<calc_level) - 0.5;    
     WIDTH = WIDTH >> calc_level;
     HEIGHT = HEIGHT >> calc_level;
 
