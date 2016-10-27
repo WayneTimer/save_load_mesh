@@ -18,7 +18,7 @@ using namespace std;
 #define OUTPUT_DIR "/home/timer/catkin_ws/gl_outputs"
 
 //const int calc_level = 0;
-const int calc_level = 1;
+const int calc_level = 0;
 int WIDTH = 752;
 int HEIGHT = 480;
 double fy = 520.0; // visensor left cam1 (P[1][1])
@@ -30,7 +30,7 @@ FILE *file;
 int cnt;
 bool has_color;
 int file_cnt = 0;
-double near = 1.0;
+double near = 1.0;  // 1.0
 double far = 50.0;
 double FOV;
 
@@ -103,8 +103,7 @@ static void triangles()
             r = g = b = 1.0;  // white
         }
         glColor3f(r,g,b);
-//        glVertex3f(x,y,z);
-        glVertex3f(x,-y,-z);
+        glVertex3f(x,y,z);
     }
     glEnd();
     fclose(file);
@@ -139,7 +138,7 @@ void reshape(int w, int h, double tx,double ty,double tz,double rd,double rx,dou
     glLoadIdentity();
    
     // FOV of the height (  tan (FOV/2)=(height-c_y)/f_y  )
-    FOV = atan2(HEIGHT-cy,fy)*2.0;
+    FOV = atan2(h-cy,fy)*2.0;
     FOV = FOV*180.0/M_PI; // tan(FOV/2) = h/(2*zNear)
     printf("FOV = %lf, PI = %lf\n",FOV,M_PI);
 //    FOV = 73; // 55,  90
@@ -149,7 +148,7 @@ void reshape(int w, int h, double tx,double ty,double tz,double rd,double rx,dou
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    //gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);    //  last three (, shangxia, )
+    gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);    //  last three (, shangxia, )
 
 /*
 double b_tx,b_ty,b_tz;
@@ -168,8 +167,8 @@ glTranslated(b_tx, b_ty, b_tz);
     //glRotated(rd, -rx, ry, rz);
     //glTranslated(-tx, ty, tz);
 
-    glRotated(rd, rx, ry, rz);
-    glTranslated(-tx, ty, tz);
+    glRotated(rd, -rx, -ry, -rz);
+    glTranslated(-tx, -ty, -tz);
 
     //gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);    //  last three (, shangxia, )
 }
@@ -348,7 +347,7 @@ int main(int argc, char **argv)
     ros::init(argc,argv,"gl_viewer");
     fy = fy / (1<<calc_level);    // down sample to calc_level
     cy = cy / (1<<calc_level);
-    //cy = (cy+0.5) / (1<<calc_level) - 0.5;    
+    //cy = (cy+0.5) / (1<<calc_level) - 0.5;
     WIDTH = WIDTH >> calc_level;
     HEIGHT = HEIGHT >> calc_level;
 

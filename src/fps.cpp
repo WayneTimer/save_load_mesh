@@ -97,7 +97,7 @@ static void triangles()
             r = g = b = 1.0;  // white
         }
         glColor3f(r,g,b);
-        glVertex3f(x,-y,-z);
+        glVertex3f(x,y,z);
     }
     glEnd();
     fclose(file);
@@ -142,7 +142,7 @@ void reshape(int w, int h)
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    //gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);    //  last three (, shangxia, )
+    gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);    //  last three (, shangxia, )
 }
 
 bool save_img(const char *file_name)
