@@ -16,7 +16,6 @@ using namespace std;
 #define OUTPUT_DIR "/home/timer/catkin_ws/gl_outputs"
 
 const int calc_level = 0;
-//const int calc_level = 2;
 int WIDTH = 752;
 int HEIGHT = 480;
 double fy = 520.0; // visensor left cam1 (P[1][1])
@@ -130,19 +129,17 @@ void reshape(int w, int h)
     printf("w=%d h=%d\n",w,h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-   
-    // FOV of the height (  tan (FOV/2)=(height-c_y)/f_y  )
-    FOV = atan2(HEIGHT-cy,fy)*2.0;
-    FOV = FOV*180.0/M_PI; // tan(FOV/2) = h/(2*zNear)
-    printf("FOV = %lf, PI = %lf\n",FOV,M_PI);
-//    FOV = 73; // 55,  90
-    gluPerspective(FOV, (GLfloat) w/(GLfloat) h, near, far);  // FOV of the height (tan (FOV/2)=(height-c_y)/f_y)
+
+    glFrustum(-WIDTH/2/fy,WIDTH/2/fy,-HEIGHT/2/fy,HEIGHT/2/fy,1,15);
 
     glEnable(GL_DEPTH_TEST);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);    //  last three (, shangxia, )
+    glRotated(-180.0,0,0,1);
+    glRotated(-180.0,0,1,0);
+    glRotated(-0,1,0,0);
+    glTranslated(-0,-0,0);
 }
 
 bool save_img(const char *file_name)
@@ -346,9 +343,10 @@ int main(int argc, char **argv)
     ros::init(argc,argv,"gl_viewer");
     fy = fy / (1<<calc_level);    // down sample to calc_level
     cy = cy / (1<<calc_level);
-    //cy = (cy+0.5) / (1<<calc_level) - 0.5;
     WIDTH = WIDTH >> calc_level;
     HEIGHT = HEIGHT >> calc_level;
+
+    printf("fy = %.2lf, cy = %.2lf, width = %d, height = %d\n",fy,cy,WIDTH,HEIGHT);
 
     sprintf(file_path,"%s",argv[1]);
     if (file_init())
