@@ -17,7 +17,6 @@ using namespace std;
 
 #define OUTPUT_DIR "/home/timer/catkin_ws/gl_outputs"
 
-//const int calc_level = 0;
 const int calc_level = 0;
 int WIDTH = 752;
 int HEIGHT = 480;
@@ -34,9 +33,7 @@ double near = 1.0;  // 1.0
 double far = 50.0;
 double FOV;
 
-Eigen::Matrix3d begin_R;
-Eigen::Quaterniond begin_quat;
-Eigen::Vector3d begin_T;
+Eigen::Matrix3d R0;
 
 // skip useless things in input file
 int file_init()
@@ -78,6 +75,16 @@ int file_init()
     // ignore rubbish
     for (int i=0;i<2;i++)
         fgets(str,100,file);
+    return 0;
+}
+
+int read_R0()
+{
+    FILE *R0_file;
+    R0_file = fopen(file_path,"r");
+    for (int i=0;i<3;i++)
+        for (int j=0;j<3;j++)
+            fscanf(R0_file,"%lf",&R0(i,j));
     return 0;
 }
 
@@ -141,36 +148,33 @@ void reshape(int w, int h, double tx,double ty,double tz,double rd,double rx,dou
     FOV = atan2(h-cy,fy)*2.0;
     FOV = FOV*180.0/M_PI; // tan(FOV/2) = h/(2*zNear)
     printf("FOV = %lf, PI = %lf\n",FOV,M_PI);
-//    FOV = 73; // 55,  90
-    gluPerspective(FOV, (GLfloat) w/(GLfloat) h, near, far);  // FOV of the height (tan (FOV/2)=(height-c_y)/f_y)
+    //gluPerspective(FOV, (GLfloat) w/(GLfloat) h, near, far);  // FOV of the height (tan (FOV/2)=(height-c_y)/f_y)
+
+    glFrustum(-WIDTH/2/fy,WIDTH/2/fy,-HEIGHT/2/fy,HEIGHT/2/fy,1,15);
 
     glEnable(GL_DEPTH_TEST);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);    //  last three (, shangxia, )
 
-/*
-double b_tx,b_ty,b_tz;
-double b_rd,b_rx,b_ry,b_rz;
-b_tx = begin_T[0];
-b_ty = begin_T[1];
-b_tz = begin_T[2];
-b_rx = begin_quat.x();
-b_ry = begin_quat.y();
-b_rz = begin_quat.z();
-b_rd = 2.0 * acos(begin_quat.w())*180.0/M_PI;
-glRotated(b_rd, b_rx, b_ry, b_rz);
-glTranslated(b_tx, b_ty, b_tz);
-*/
+    glRotated(-180.0,0,0,1);
+    glRotated(-180.0,0,1,0);
+    glRotated(-0,1,0,0);
+    glTranslated(-0,-0,0);
 
-    //glRotated(rd, -rx, ry, rz);
-    //glTranslated(-tx, ty, tz);
+Eigen::Quaterniond q0(R0);
+q0.normalize();
+
+double first_rx,first_ry,first_rz,first_rd;
+first_rd = 2.0 * acos(q0.w())*180.0/M_PI;
+first_rx = q0.x();
+first_ry = q0.y();
+first_rz = q0.z();
+
+glRotated(first_rd, -first_rx, -first_ry, -first_rz);
 
     glRotated(rd, -rx, -ry, -rz);
     glTranslated(-tx, -ty, -tz);
-
-    //gluLookAt(0, 0, 0, 0, 0, 1, 0, -1, 0);    //  last three (, shangxia, )
 }
 
 bool save_img(const char *file_name)
@@ -357,28 +361,19 @@ int main(int argc, char **argv)
         ROS_ERROR("Something error happend!");
         return 1;
     }
+    // read R0
+    sprintf(file_path,"%s",argv[2]);
+    if (read_R0())
+    {
+        ROS_ERROR("R0 read error!");
+        return 1;
+    }
+
     glutInitWindowSize(WIDTH,HEIGHT);
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
     glutCreateWindow(argv[0]);
     init();
-
-    begin_R(0,0) = 0.999781;
-    begin_R(0,1) = -0.000137;
-    begin_R(0,2) = 0.020942;
-    begin_R(1,0) = -0.000904;
-    begin_R(1,1) = -0.999328;
-    begin_R(1,2) = 0.036635;
-    begin_R(2,0) = 0.020923;
-    begin_R(2,1) = -0.036645;
-    begin_R(2,2) = -0.999109;
-
-    begin_T[0] = 0.002042;
-    begin_T[1] = 0.008846;
-    begin_T[2] = -0.359814;
-
-    begin_quat = Eigen::Quaterniond(begin_R);
-    begin_quat.normalize();
 
     service_thread();
 

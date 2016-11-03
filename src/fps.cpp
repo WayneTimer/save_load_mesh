@@ -31,6 +31,8 @@ double near = 1.0;
 double far = 50.0;
 double FOV;
 
+Eigen::Matrix3d R0;
+
 // skip useless things in input file
 int file_init()
 {
@@ -71,6 +73,16 @@ int file_init()
     // ignore rubbish
     for (int i=0;i<2;i++)
         fgets(str,100,file);
+    return 0;
+}
+
+int read_R0()
+{
+    FILE *R0_file;
+    R0_file = fopen(file_path,"r");
+    for (int i=0;i<3;i++)
+        for (int j=0;j<3;j++)
+            fscanf(R0_file,"%lf",&R0(i,j));
     return 0;
 }
 
@@ -136,10 +148,22 @@ void reshape(int w, int h)
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+
     glRotated(-180.0,0,0,1);
     glRotated(-180.0,0,1,0);
     glRotated(-0,1,0,0);
     glTranslated(-0,-0,0);
+
+Eigen::Quaterniond q0(R0);
+q0.normalize();
+
+double first_rx,first_ry,first_rz,first_rd;
+first_rd = 2.0 * acos(q0.w())*180.0/M_PI;
+first_rx = q0.x();
+first_ry = q0.y();
+first_rz = q0.z();
+
+glRotated(first_rd, -first_rx, -first_ry, -first_rz);
 }
 
 bool save_img(const char *file_name)
@@ -354,6 +378,14 @@ int main(int argc, char **argv)
         ROS_ERROR("Something error happend!");
         return 1;
     }
+    // read R0
+    sprintf(file_path,"%s",argv[2]);
+    if (read_R0())
+    {
+        ROS_ERROR("R0 read error!");
+        return 1;
+    }
+
     glutInitWindowSize(WIDTH,HEIGHT);
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
