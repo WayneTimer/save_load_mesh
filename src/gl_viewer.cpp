@@ -9,6 +9,7 @@
 #include <fstream>
 #include <eigen3/Eigen/Dense>
 #include <boost/thread.hpp>
+#include <visualization_msgs/Marker.h>
 
 #include "save_load_mesh/RendererService.h"
 #include "utils.h"
@@ -34,6 +35,7 @@ double far = 50.0;
 double FOV;
 
 Eigen::Matrix3d R0;
+ros::Publisher pub_all_meshes;
 
 // skip useless things in input file
 int file_init()
@@ -91,6 +93,18 @@ int read_R0()
 // Draw triangles
 static void triangles()
 {
+    visualization_msgs::Marker marker;
+    marker.header.stamp = ros::Time::now();
+    marker.header.frame_id = "world";
+    marker.scale.x = 1;
+    marker.scale.y = 1;
+    marker.scale.z = 1;
+    marker.pose.orientation.x = 0;
+    marker.pose.orientation.y = 0;
+    marker.pose.orientation.z = 0;
+    marker.pose.orientation.w = 1;
+    marker.type = visualization_msgs::Marker::TRIANGLE_LIST;
+
     char str[100];
     double x,y,z,r,g,b;
     glBegin(GL_TRIANGLES);
@@ -111,10 +125,25 @@ static void triangles()
         }
         glColor3f(r,g,b);
         glVertex3f(x,y,z);
+
+        geometry_msgs::Point pt;
+        pt.x = x;
+        pt.y = y;
+        pt.z = z;
+        marker.points.push_back(pt);
+
+        std_msgs::ColorRGBA color;
+        color.r = r;
+        color.g = g;
+        color.b = b;
+        color.a = 1.0;
+        marker.colors.push_back(color);
     }
     glEnd();
     fclose(file);
     printf("total points = %d\n",cnt);
+
+    pub_all_meshes.publish(marker);
 }
 
 // Create display list with triangles(meshes) and initialize state
@@ -349,6 +378,10 @@ void service_thread()
 int main(int argc, char **argv)
 {
     ros::init(argc,argv,"gl_viewer");
+    ros::NodeHandle nh("~");
+
+    pub_all_meshes = nh.advertise<visualization_msgs::Marker>("all_meshes",1000);
+
     fy = fy / (1<<calc_level);    // down sample to calc_level
     cy = cy / (1<<calc_level);
     //cy = (cy+0.5) / (1<<calc_level) - 0.5;
