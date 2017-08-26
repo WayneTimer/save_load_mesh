@@ -3,7 +3,7 @@
 <launch>
 
     <node pkg="save_load_mesh" type="gl_viewer" name="gl_viewer" output="screen"
-          args="/home/timer/ROS_bags/model_blur/good/same_focal_0-15s_0.035m.ply /home/timer/ROS_bags/model_blur/zero_frame.txt"
+          args="/home/timer/temp/final_blur.ply /home/timer/bags/model_blur/zero_frame.txt"
     />
 
 </launch>

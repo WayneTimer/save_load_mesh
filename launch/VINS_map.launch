@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="ISO-8859-15"?>
+
+<launch>
+
+    <node pkg="save_load_mesh" type="gl_viewer" name="gl_viewer" output="screen"
+          args="/home/timer/ROS_bags/model_blur/texture_0.008m_10-28s.ply /home/timer/ROS_bags/model_blur/zero_frame.txt"
+    />
+
+</launch>
+
+<!--          args="/home/timer/ROS_bags/model_blur/texture_0.008m_10-28s.ply /home/timer/ROS_bags/model_blur/texture_0.008m.txt" -->
