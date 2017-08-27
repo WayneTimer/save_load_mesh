@@ -21,8 +21,8 @@ using namespace std;
 const int calc_level = 0;
 int WIDTH = 752;
 int HEIGHT = 480;
-double fy = 520.0; // visensor left cam1 (P[1][1])
-double cy = 240.0; // visensor left cam1 (P[1][2])
+double fy = 454.0643015146841; // visensor left cam1 (P[1][1])
+double cy = 223.23332405090332; // visensor left cam1 (P[1][2])
 
 char file_path[100];
 GLuint meshes;
